@@ -92,10 +92,10 @@ def getDiffCoeffs(name, band_center, fbw, theta):
     
     
     #Band-averages differential transmission, reflection and absorption    
-    diffTrans =  abs(intg.simps((Ts - Tp)/2, freqs)/(band_center * fbw))
-    diffRefl  =  abs(intg.simps((Rs - Rp)/2, freqs)/(band_center * fbw))
-    diffAbs   =  abs(intg.simps((As - Ap)/2, freqs)/(band_center * fbw))
-#    print("Absorption: ", abs(intg.simps((As + Ap)/2, freqs)/(band_center * fbw)))
+    diffTrans =  abs(intg.simpson((Ts - Tp)/2, x=freqs)/(band_center * fbw))
+    diffRefl  =  abs(intg.simpson((Rs - Rp)/2, x=freqs)/(band_center * fbw))
+    diffAbs   =  abs(intg.simpson((As - Ap)/2, x=freqs)/(band_center * fbw))
+    # print("Absorption: ", abs(intg.simpson((As + Ap)/2, x=freqs)/(band_center * fbw)))
     
     return (diffTrans, diffRefl, diffAbs)
 
@@ -111,8 +111,3 @@ if __name__ == "__main__":
         T_window, _, _ =getDiffCoeffs("Window", bc[index], fbw[index], theta)
         print(f'Window ({bc[index]/GHz}): {T_window}')
         print(f'Filter ({bc[index]/GHz}): {T_filter}')
-
-
-
-
-        

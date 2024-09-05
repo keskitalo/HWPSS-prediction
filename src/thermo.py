@@ -21,7 +21,7 @@ GHz = 10 ** 9
 
 #Calculates total black body power for a given temp and emis.
 def bbSpec(freq,temp,emis):
-    """Calculates the Black body spectrum for a given temp and emis"""    
+    """Calculates the Black body spectrum for a given temp and emis"""
     if temp==0:
         return 0
     occ = 1.0/(np.exp(h*freq/(temp*kB)) - 1)
@@ -29,7 +29,7 @@ def bbSpec(freq,temp,emis):
     return 2 * e * h * freq**3 /(c**2) * occ
 
 def weightedSpec(freq,temp,emis):
-    """Calculates the Black body spectrum for a given temp and emis weighted by AOmega"""    
+    """Calculates the Black body spectrum for a given temp and emis weighted by AOmega"""
     AOmega = (c/freq)**2
     return AOmega * bbSpec(freq, temp, emis)
 
@@ -62,4 +62,3 @@ def aniPowSpec(emis, freq, temp=Tcmb):
 
 if __name__=="__main__":
     print((bbSpec(145 * GHz, 100, 1)))
-    

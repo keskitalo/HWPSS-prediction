@@ -39,7 +39,7 @@ import os
 ###############################################################################
 # Define constants to be used in the code.
 ###############################################################################
- 
+
 c      = 2.998e8       # m/s
 GHz    = 1e9         # gigaHertz
 THz    = 1e12        # teraHertz
@@ -69,7 +69,7 @@ class material(object):
         ordinaryIndex - (float) real part of the refractive index for
                         the ordinary axes.
         extraIndex    - (float) real part of the refractive index for
-                        the extraordinary axis. 
+                        the extraordinary axis.
         ordinaryLoss  - (float) ratio of the imaginary part of the dielectric
                         constant to the real part for ordinary ray.
         extraLoss     - (float) ratio of the imaginary part of the dielectric
@@ -116,7 +116,7 @@ class material(object):
             s.append("Loss Tangent (extraordinary): %f"%(self.extraLoss))
         else: raise ValueError("""materialType is invalid\n.
                                 Must be either 'isotropic' or 'uniaxial.'""")
-        
+
         s.append("\n")
 
         return "\n".join(s)
@@ -171,8 +171,8 @@ class Stack(object):
 
         return "\n".join(s)
 
-        
-class transferMatrix(object):         
+
+class transferMatrix(object):
     """
     Holds the transfer matrix for a single layer, along with
     the properties of the layer in a material object, defined above. This is
@@ -192,7 +192,7 @@ class transferMatrix(object):
         rotation       - angle that the stack is rotated about the z axis,
                          CCW from the x axis, also in radians.
         """
-        
+
         self.material       = material
         self.frequency      = frequency
         self.nsin           = nsin
@@ -204,7 +204,7 @@ class transferMatrix(object):
         chi     = rotation
         t       = thickness
         k0      = 2*pi*frequency / c  # Wavenumber in free space.
-        
+
         nO = material.ordinaryIndex
         nEmat = material.extraIndex
         nE = nEmat * np.sqrt(1 + (nEmat**(-2) - nO**(-2)) * nsin**2 *  cos(chi)**2)
@@ -215,7 +215,7 @@ class transferMatrix(object):
         self.thetaO = thetaO
         self.thetaE = thetaE
 
-        self.nE = nE        
+        self.nE = nE
 
         nComplexO = material.ordinaryComplexIndex
         nComplexE = sqrt(nE**2 *(1 - 1j*material.extraLoss))
@@ -247,7 +247,7 @@ class transferMatrix(object):
         self.rot = rot
         self.rotinv = rotinv
         self.eps = eps
-        
+
         ########################################################################
         # Calculate field components transmitted from Interface I.
         # All other fields can be related directly to these.
@@ -281,7 +281,7 @@ class transferMatrix(object):
         self.HOrd = HOrd
 
         # Magnetic field for extraordinary ray.
-        DenomHExtra = sqrt( cos(thetaO-thetaE)**2 * sin(chi)**2 + cos(thetaO)**2 * cos(chi)**2 ) 
+        DenomHExtra = sqrt( cos(thetaO-thetaE)**2 * sin(chi)**2 + cos(thetaO)**2 * cos(chi)**2 )
         HExtra      = np.array(( -cos(thetaO-thetaE) * cos(thetaE) * sin(chi),\
                                  1*cos(thetaO)*cos(chi),\
                                  1*cos(thetaO-thetaE) * sin(thetaE) * sin(chi)),\
@@ -341,10 +341,10 @@ class transferMatrix(object):
 
         self.transferMatrix = np.dot( Psi, np.dot( Phi, inv(np.dot( Psi, np.dot(Phi, P)))))
 
-        
+
 class stackTransferMatrix(object):
     """
-    Calculates the transfer matrix for a stack, and creates 
+    Calculates the transfer matrix for a stack, and creates
     an object which holds the individual layers plus the matrix for the stack as a whole.
     """
 
@@ -417,14 +417,14 @@ def TranToJones(transfer):
     n3     = transfer.exitIndex
     theta1 = transfer.incidenceAngle
     theta3 = transfer.exitAngle
-   
+
     # Define a series of constants which will then go to making the relevant equations.
     A = (m[0,0] * cos(theta3) + m[0,1]*n3) / cos(theta1)
     B = (m[0,2] + m[0,3]*n3 * cos(theta3)) / cos(theta1)
     C = (m[1,0] * cos(theta3) + m[1,1]*n3) / n1
     D = (m[1,2] + m[1,3]*n3 * cos(theta3)) / n1
-    N = (m[2,0] * cos(theta3) + m[2,1]*n3) 
-    K = (m[2,2] + m[2,3]*n3 * cos(theta3)) 
+    N = (m[2,0] * cos(theta3) + m[2,1]*n3)
+    K = (m[2,2] + m[2,3]*n3 * cos(theta3))
     P = (m[3,0] * cos(theta3) + m[3,1]*n3) / (n1*cos(theta1))
     S = (m[3,2] + m[3,3]*n3 * cos(theta3)) / (n1*cos(theta1))
 
@@ -508,7 +508,7 @@ def Jones( stack, frequency, incidenceAngle, rotation, inputIndex=1.0, exitIndex
     jones   = TranToJones(transfer)
 
     if reflected==False:
-        output = jones[0] 
+        output = jones[0]
     elif reflected==True:
         output = jones[1]
     else: raise ValueError("""Invalid value for reflected. Must be True or False.""")
@@ -522,10 +522,10 @@ def Jones( stack, frequency, incidenceAngle, rotation, inputIndex=1.0, exitIndex
 ############################################################################################################
 
 def BandAveragedMueller( stack, spectrumFile, minFreq, maxFreq, reflected=False, passBandFile=False,\
-                         incidenceAngle=0.0, numFreqs=1000, rotation=0.0, inputIndex=1.0, outputIndex=1.0 ): 
+                         incidenceAngle=0.0, numFreqs=1000, rotation=0.0, inputIndex=1.0, outputIndex=1.0 ):
     """
     Calculates the band-averaged Mueller matrix, given a Stack object describing an optical
-    system and a frequency spectrum of the source you are observing. 
+    system and a frequency spectrum of the source you are observing.
 
     Required arguments are:
 
@@ -536,8 +536,8 @@ def BandAveragedMueller( stack, spectrumFile, minFreq, maxFreq, reflected=False,
                         The first two lines of the file will be ignored and can be used as explanatory text.
     minFreq       - (float) The lowest frequency, in Hz, to integrate over.
     maxFreq       - (float) The highest frequency, in Hz, to integrate over.
-    
-    
+
+
     Optional arguments are:
 
     reflection     - (boolean) Whether or not to look at reflected Mueller matrix. Default is False,
@@ -551,7 +551,7 @@ def BandAveragedMueller( stack, spectrumFile, minFreq, maxFreq, reflected=False,
     numFreqs       - (integer) The number of frequencies between minFreq and maxFreq to consider. default is 1000.
     rotation       - (float) Rotation of the stack in degrees. Default is zero.
     inputIndex     - (float) Index of refraction of the input medium to the stack. Default is vacuum.
-    OutputIndex    - (float) Index of refraction of the output medium to the stack. Default is vacuum.    
+    OutputIndex    - (float) Index of refraction of the output medium to the stack. Default is vacuum.
 
     Returns a 4x4 numpy array of floats, which is the Mueller matrix of the stack integrated
     against the detector passband and the spectrum of the source being observed.
@@ -577,8 +577,8 @@ def BandAveragedMueller( stack, spectrumFile, minFreq, maxFreq, reflected=False,
     MuellerVU = np.zeros(numFreqs, dtype=np.float64)
     MuellerVV = np.zeros(numFreqs, dtype=np.float64)
 
-    
-    # Calculate the Mueller matrix of the stack at each of the frequencies. 
+
+    # Calculate the Mueller matrix of the stack at each of the frequencies.
     for i in range(numFreqs):
         transfer = stackTransferMatrix( stack, frequencies[i], incidenceAngle, rotation, inputIndex, outputIndex)
         jones   = TranToJones(transfer)
@@ -604,7 +604,7 @@ def BandAveragedMueller( stack, spectrumFile, minFreq, maxFreq, reflected=False,
         MuellerVQ[i] = tempMueller[3,1]
         MuellerVU[i] = tempMueller[3,2]
         MuellerVV[i] = tempMueller[3,3]
-        
+
 
     # Now read in the spectrum from the file.
     specFile = open( spectrumFile, 'r')
@@ -616,12 +616,12 @@ def BandAveragedMueller( stack, spectrumFile, minFreq, maxFreq, reflected=False,
     for i in range(2, len(specText)):
         freq, spec = specText[i].split()
         spectrumData[0,i-2] = freq
-        spectrumData[1,i-2] = spec        
+        spectrumData[1,i-2] = spec
 
     # We need to interpolate the spectrum data to get approximate values at
     # each of the frequencies chosen above.
-    spectrumFunction = interpolate.interp1d( spectrumData[0,:], spectrumData[1,:]) 
-    observedSpectrum = spectrumFunction( frequencies ) 
+    spectrumFunction = interpolate.interp1d( spectrumData[0,:], spectrumData[1,:])
+    observedSpectrum = spectrumFunction( frequencies )
 
 
     # Now get the detector passband from the file, if a file has been specified. Otherwise
@@ -630,7 +630,7 @@ def BandAveragedMueller( stack, spectrumFile, minFreq, maxFreq, reflected=False,
 
     if passBandFile==False:
         passBand = np.zeros(numFreqs, dtype=np.float64)
-        
+
         for i in range(numFreqs):
             passBand[i] = 1.0
 
@@ -655,7 +655,7 @@ def BandAveragedMueller( stack, spectrumFile, minFreq, maxFreq, reflected=False,
     IntegratedMuellerII = integrate.trapz(MuellerII*observedSpectrum*passBand, frequencies)/ \
                           integrate.trapz(observedSpectrum*passBand, frequencies)
     IntegratedMuellerIQ = integrate.trapz(MuellerIQ*observedSpectrum*passBand, frequencies)/ \
-                          integrate.trapz(observedSpectrum*passBand, frequencies)    
+                          integrate.trapz(observedSpectrum*passBand, frequencies)
     IntegratedMuellerIU = integrate.trapz(MuellerIU*observedSpectrum*passBand, frequencies)/ \
                           integrate.trapz(observedSpectrum*passBand, frequencies)
     IntegratedMuellerIV = integrate.trapz(MuellerIV*observedSpectrum*passBand, frequencies)/ \
@@ -695,7 +695,7 @@ def BandAveragedMueller( stack, spectrumFile, minFreq, maxFreq, reflected=False,
         dtype=np.float64)
 
     return IntegratedMueller
-    
+
 
 def JonesRotation(jones, theta):
 

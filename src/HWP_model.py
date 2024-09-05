@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 import transfer_matrix as tm
 import Telescope as tp
 import os
+import pickle
 import json
 import logging as log
 
@@ -49,7 +50,7 @@ def loadStack(materials, stackFile):
     """
     name, thick, angle = np.loadtxt(stackFile, dtype=str, unpack=True)
     mats = [materials[n] for n in name]
-    
+
     thick = np.array(list(map(np.float64, thick))) * 1.e-3
     angle = np.array(list(map(np.float64, angle)))
     angle = np.deg2rad(angle)
@@ -58,9 +59,9 @@ def loadStack(materials, stackFile):
 class HWP:
     def __init__(self, hwpDir, temp, theta, det):
         self.name = "HWP"
-        self.temp = temp 
+        self.temp = temp
         self.freqs = det.freqs
-        
+
         if det.band_center < 60 * GHz:
             band = "LF"
         elif det.band_center < 200 * GHz:
@@ -70,37 +71,39 @@ class HWP:
         else:
             print("Can't determine band")
             raise ValueError
-            
+
         hwpDir = os.path.join(hwpDir, band)
-        
+
         matFile = os.path.join(hwpDir, "materials.txt")
         stackFile = os.path.join(hwpDir, "stack.txt")
-        
-        
+
+
         # =============================================================================
         #   Find correct HWP file
         # =============================================================================
-        
+
         theta_deg = int(5 * round(np.rad2deg(theta) / 5))
         datadir = os.path.join(hwpDir, "HWPSS_data/%d_deg/"%(np.rad2deg(theta)))
-        
-        HWPSS_transFile = os.path.join(datadir, "Trans.npy")
-        HWPSS_reflFile = os.path.join(datadir, "Refl.npy")
+
+        HWPSS_transFile = os.path.join(datadir, "Trans.pck")
+        HWPSS_reflFile = os.path.join(datadir, "Refl.pck")
 
         # =============================================================================
-        #    Initialize materials, stack, and A2/4 fit files.     
+        #    Initialize materials, stack, and A2/4 fit files.
         # =============================================================================
         self.theta = theta
         self.det = det
         self.materials = loadMaterials(matFile)
         self.stack = loadStack(self.materials, stackFile)
-        
+
         self.thickness = 0.003
         self.thickness = sum(self.stack.thicknesses[2:-2] )
-        
-        _, fs, A2upT, A4upT, A2ppT, A4ppT = np.load(HWPSS_transFile, allow_pickle=True)
-        _, _, A2upR, A4upR, A2ppR, A4ppR = np.load(HWPSS_reflFile, allow_pickle=True)
-        
+
+        with open(HWPSS_transFile, "rb") as f:
+            _, fs, A2upT, A4upT, A2ppT, A4ppT = pickle.load(f)
+        with open(HWPSS_reflFile, "rb") as f:
+            _, _, A2upR, A4upR, A2ppR, A4ppR = pickle.load(f)
+
 
         # Resample fns to have same length as detector frequency
         self.A2upT, self.A4upT, self.A2ppT, self.A4ppT = [], [], [], []
@@ -115,25 +118,25 @@ class HWP:
             self.A4upR.append(abs(np.interp(f, fs, A4upR)))
             self.A2ppR.append(abs(np.interp(f, fs, A2ppR)))
             self.A4ppR.append(abs(np.interp(f, fs, A4ppR)))
-        
+
         self.A2upT, self.A4upT, self.A2ppT, self.A4ppT = list(map(np.array,  [self.A2upT, self.A4upT, self.A2ppT, self.A4ppT]))
         self.A2upR, self.A4upR, self.A2ppR, self.A4ppR = list(map(np.array,  [self.A2upR, self.A4upR, self.A2ppR, self.A4ppR]))
         self.p = None
-        
+
 
         # =============================================================================
-        #    Calculates average trans and reflection Mueller matrices 
+        #    Calculates average trans and reflection Mueller matrices
         # =============================================================================
         self.MTave = np.zeros((4,4))
         self.MRave = np.zeros((4,4))
-        
+
         for f in det.freqs:
             self.MTave += self.Mueller(f, reflected = False)
             self.MRave += self.Mueller(f, reflected = False)
-            
+
         self.MTave /= len(det.freqs)
         self.MRave /= len(det.freqs)
-        
+
         #==============================================================================
         #   Calculates Efficiency and emission curves
         #==============================================================================
@@ -143,74 +146,74 @@ class HWP:
         for f in self.freqs:
             JT = tm.Jones(self.stack, f, 0.0, 0.0, reflected = False)
             JR = tm.Jones(self.stack, f, 0.0, 0.0, reflected = True)
-            
+
             Sp = np.array([1, 0])
             Ss = np.array([0, 1])
-            
+
             SpT = JT.dot(Sp)
             SpR = JR.dot(Sp)
             SsT = JT.dot(Ss)
             SsR = JR.dot(Ss)
-            
+
             Tp = SpT.dot(SpT.conj().T)
             Rp = SpR.dot(SpR.conj().T)
             Ts = SsT.dot(SsT.conj().T)
-            Rs = SsR.dot(SsR.conj().T)    
+            Rs = SsR.dot(SsR.conj().T)
             Ap = 1 - Tp - Rp
             As = 1 - Ts - Rs
-            
+
             self.eff.append(abs(.5 * (Tp + Ts)))
             self.emis.append(abs(.5 * (Ap + As)))
             self.pemis.append(abs(.5 * (Ap - As)))
-        
+
         self.eff = np.array(self.eff)
         self.emis = np.array(self.emis)
         self.pemis = np.array(self.pemis)
-        
+
     def Eff(self, freq):
         return np.interp(freq, self.freqs, self.eff)
 
     def pEff(self, freq):
         return self.Eff(freq)
-    
+
     def Emis(self, freq):
         return np.interp(freq, self.freqs, self.emis)
-    
+
     def pEmis(self, freq):
-        
+
         tdo = 2e-6
         tde = 1e-6
         no = 3.05
         ne = 3.38
-        
+
         ao = 2 * np.pi  * no * tdo * freq / (3e8) #1/m
         ae = 2 * np.pi  * ne * tde * freq / (3e8) #1/m
-        
-        Potrans =  1 - np.exp(-ao * self.thickness) 
+
+        Potrans =  1 - np.exp(-ao * self.thickness)
         Petrans =  1 - np.exp(-ae * self.thickness)
-        pemis = abs(Petrans - Potrans) / 2            
+        pemis = abs(Petrans - Potrans) / 2
         return pemis
 
-        
+
     def Ip(self, freq):
         return 0
-    
+
     def Refl(self, freq):
         return 0
-    
+
     def pRefl(self, freq):
         return 0
-        
+
     def Mueller(self, freq, reflected = False):
         """
-            Returns the Mueller matrix for the HWP at the specified frequency 
+            Returns the Mueller matrix for the HWP at the specified frequency
         """
-        return tm.Mueller(self.stack, freq, self.theta, 0.0, reflected = reflected)            
-        
+        return tm.Mueller(self.stack, freq, self.theta, 0.0, reflected = reflected)
+
     def getHWPSS(self, freq, stokes, reflected = False, fit = False):
         """
             Returns A2 and A4 amplitudes generated by given incident (or reflected) stokes vector.
-            
+
             If fit is true, returns fit from file.
         """
         if not fit:
@@ -226,8 +229,7 @@ class HWP:
             A2, A4 = abs(self.p[2]), abs(self.p[4])
 
         return A2, A4
-    
+
     def fit1 (self, freq, stokes, reflected = False):
         p= fitAmplitudes(self.stack, freq, self.theta, stokes, reflected = reflected)
         return abs(p[2]), abs(p[4])
-        

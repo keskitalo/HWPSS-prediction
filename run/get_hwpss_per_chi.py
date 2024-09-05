@@ -110,22 +110,24 @@ def decompose(chis, sig):
 def fit_hwpss(HWP_data_dir, theta_deg):
     path = os.path.join(HWP_data_dir, "{}_deg".format(theta_deg))
     os.makedirs(path, exist_ok=True)
-    fname_trans = os.path.join(path, "Trans.npy")
+    fname_trans = os.path.join(path, "Trans.pck")
     if not os.path.exists(fname_trans):
         print(
             f"{fname_trans} does not exist, Caching ...",
             flush=True,
         )
-        data = calcHWPSSCoeffs(stack, theta=theta_rad, reflected=False, band=band)
-        np.save(fname_trans[:-4], data)
-    fname_refl = os.path.join(path, "Refl.npy")
+        result = calcHWPSSCoeffs(stack, theta=theta_rad, reflected=False, band=band)
+        with open(fname_trans, "wb") as f:
+            pickle.dump(result, f)
+    fname_refl = os.path.join(path, "Refl.pck")
     if not os.path.exists(fname_refl):
         print(
             f"{fname_refl} does not exist, Caching ...",
             flush=True,
         )
-        data = calcHWPSSCoeffs(stack, theta=theta_rad, reflected=True, band=band)
-        np.save(fname_refl[:-4], data)
+        result = calcHWPSSCoeffs(stack, theta=theta_rad, reflected=True, band=band)
+        with open(fname_refl, "wb") as f:
+            pickle.dump(result, f)
     return
 
 
